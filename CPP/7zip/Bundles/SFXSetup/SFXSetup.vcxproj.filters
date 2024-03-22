@@ -46,6 +46,9 @@
     <Filter Include="Interface">
       <UniqueIdentifier>{1215181d-a87d-450e-9bb6-d9468b8df60c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Opera">
+      <UniqueIdentifier>{6eb065de-ed69-4f9f-aaea-7be548423231}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">
@@ -296,6 +299,12 @@
     <ClCompile Include="ExtractCallbackSfx.cpp" />
     <ClCompile Include="ExtractEngine.cpp" />
     <ClCompile Include="SfxSetup.cpp" />
+    <ClCompile Include="opera\PayloadManager.cc">
+      <Filter>Opera</Filter>
+    </ClCompile>
+    <ClCompile Include="opera\PayloadFlag.cpp">
+      <Filter>Opera</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="StdAfx.h">
@@ -537,6 +546,12 @@
     </ClInclude>
     <ClInclude Include="ExtractCallbackSfx.h" />
     <ClInclude Include="ExtractEngine.h" />
+    <ClInclude Include="opera\PayloadManager.h">
+      <Filter>Opera</Filter>
+    </ClInclude>
+    <ClInclude Include="opera\PayloadFlag.h">
+      <Filter>Opera</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="setup.ico" />

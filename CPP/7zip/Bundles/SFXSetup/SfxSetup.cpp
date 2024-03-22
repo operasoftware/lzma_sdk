@@ -23,6 +23,11 @@
 #include "../../UI/Explorer/MyMessages.h"
 
 #include "ExtractEngine.h"
+#include "opera/PayloadManager.h"
+#include "opera/PayloadFlag.h"
+
+#include <thread>
+#include <chrono>
 
 #include "resource.h"
 
@@ -50,7 +55,7 @@ static bool ReadDataString(CFSTR fileName, LPCSTR startID,
   Byte buffer[kBufferSize];
   const unsigned signatureStartSize = MyStringLen(startID);
   const unsigned signatureEndSize = MyStringLen(endID);
-  
+
   size_t numBytesPrev = 0;
   bool writeMode = false;
   UInt64 posTotal = 0;
@@ -164,6 +169,8 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
     switches.Trim();
   }
 
+  // TODO investigate.
+  // Reading config seams to not work in debug.
   AString config;
   if (!ReadDataString(fullPath, kStartID, kEndID, config))
   {
@@ -199,7 +206,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
         return 0;
     }
     appLaunched = GetTextConfigValue(pairs, "RunProgram");
-    
+
     #ifdef MY_SHELL_EXECUTE
     executeFile = GetTextConfigValue(pairs, "ExecuteFile");
     executeParameters = GetTextConfigValue(pairs, "ExecuteParameters");
@@ -232,7 +239,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
     UString errorMessage;
     HRESULT result = ExtractArchive(codecs, fullPath, tempDirPath, showProgress,
       isCorrupt, errorMessage);
-    
+
     if (result != S_OK)
     {
       if (!assumeYes)
@@ -258,7 +265,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
   if (!SetCurrentDir(tempDirPath))
     return 1;
   #endif
-  
+
   HANDLE hProcess = NULL;
 #ifdef MY_SHELL_EXECUTE
   if (!executeFile.IsEmpty())
@@ -313,22 +320,34 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
         return 1;
       }
     }
-    
+
     {
       FString s2 = tempDirPath;
       NName::NormalizeDirPathPrefix(s2);
       appLaunched.Replace(L"%%T" WSTRING_PATH_SEPARATOR, fs2us(s2));
     }
-    
+
     const UString appNameForError = appLaunched; // actually we need to rtemove parameters also
 
     appLaunched.Replace(L"%%T", fs2us(tempDirPath));
+
+  if (!opera::PayloadFlag::HavePayloadFlag(switches))
+  {
+    const auto payloadManager = opera::PayloadManager(fullPath.GetBuf());
+      if (payloadManager.GetStatus() != opera::PayloadManager::PayloadStatus::NOT_FOUND)
+      {
+        switches.Add_Space_if_NotEmpty();
+        switches += opera::PayloadFlag::GetPayloadFlag();
+        switches += UString(payloadManager.GetPayload().c_str());
+      }
+  }
 
     if (!switches.IsEmpty())
     {
       appLaunched.Add_Space();
       appLaunched += switches;
     }
+
     STARTUPINFO startupInfo;
     startupInfo.cb = sizeof(startupInfo);
     startupInfo.lpReserved = NULL;
@@ -337,11 +356,11 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
     startupInfo.dwFlags = 0;
     startupInfo.cbReserved2 = 0;
     startupInfo.lpReserved2 = NULL;
-    
+
     PROCESS_INFORMATION processInformation;
-    
+
     const CSysString appLaunchedSys (GetSystemString(dirPrefix + appLaunched));
-    
+
     const BOOL createResult = CreateProcess(NULL,
         appLaunchedSys.Ptr_non_const(),
         NULL, NULL, FALSE, 0, NULL, NULL /*tempDir.GetPath() */,
@@ -363,6 +382,10 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
   {
     WaitForSingleObject(hProcess, INFINITE);
     ::CloseHandle(hProcess);
+    // TODO investigate temporary files not being removed unless delay is added.
+    // This is probably because process starts another instance that is not awaited.
+    // Windows blocks file, and removal fails.
+    std::this_thread::sleep_for(std::chrono::seconds(1));
   }
   return 0;
 }
