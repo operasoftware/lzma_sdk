@@ -181,7 +181,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
 
   UString dirPrefix ("." STRING_PATH_SEPARATOR);
   UString appLaunched;
-  bool showProgress = true;
+  bool showProgress = false;
   if (!config.IsEmpty())
   {
     CObjectVector<CTextConfigPair> pairs;
@@ -194,8 +194,8 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
     const UString friendlyName = GetTextConfigValue(pairs, "Title");
     const UString installPrompt = GetTextConfigValue(pairs, "BeginPrompt");
     const UString progress = GetTextConfigValue(pairs, "Progress");
-    if (progress.IsEqualTo_Ascii_NoCase("no"))
-      showProgress = false;
+    if (progress.IsEqualTo_Ascii_NoCase("yes"))
+      showProgress = true;
     const int index = FindTextConfigItem(pairs, "Directory");
     if (index >= 0)
       dirPrefix = pairs[index].String;
