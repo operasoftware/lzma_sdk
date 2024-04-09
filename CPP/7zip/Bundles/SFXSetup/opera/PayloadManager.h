@@ -1,3 +1,5 @@
+#ifdef OPERA_CUSTOM_CODE
+
 #ifndef OPERA_PAYLOAD_MANAGER_H_
 #define OPERA_PAYLOAD_MANAGER_H_
 
@@ -53,3 +55,5 @@ private:
 }  // namespace opera
 
 #endif  // OPERA_PAYLOAD_MANAGER_H_
+
+#endif // OPERA_CUSTOM_CODE

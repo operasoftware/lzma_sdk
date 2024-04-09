@@ -23,11 +23,14 @@
 #include "../../UI/Explorer/MyMessages.h"
 
 #include "ExtractEngine.h"
+
+#ifdef OPERA_CUSTOM_CODE
 #include "opera/PayloadManager.h"
 #include "opera/PayloadFlag.h"
 
 #include <thread>
 #include <chrono>
+#endif // OPERA_CUSTOM_CODE
 
 #include "resource.h"
 
@@ -331,16 +334,18 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
 
     appLaunched.Replace(L"%%T", fs2us(tempDirPath));
 
-  if (!opera::PayloadFlag::HavePayloadFlag(switches))
-  {
-    const auto payloadManager = opera::PayloadManager(fullPath.GetBuf());
+#ifdef OPERA_CUSTOM_CODE
+    if (!opera::PayloadFlag::HavePayloadFlag(switches))
+    {
+      const auto payloadManager = opera::PayloadManager(fullPath.GetBuf());
       if (payloadManager.GetStatus() != opera::PayloadManager::PayloadStatus::NOT_FOUND)
       {
         switches.Add_Space_if_NotEmpty();
         switches += opera::PayloadFlag::GetPayloadFlag();
         switches += UString(payloadManager.GetPayload().c_str());
       }
-  }
+    }
+#endif // OPERA_CUSTOM_CODE
 
     if (!switches.IsEmpty())
     {
@@ -382,10 +387,13 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
   {
     WaitForSingleObject(hProcess, INFINITE);
     ::CloseHandle(hProcess);
+
+#ifdef OPERA_CUSTOM_CODE
     // TODO investigate temporary files not being removed unless delay is added.
     // This is probably because process starts another instance that is not awaited.
     // Windows blocks file, and removal fails.
     std::this_thread::sleep_for(std::chrono::seconds(1));
+#endif // OPERA_CUSTOM_CODE
   }
   return 0;
 }

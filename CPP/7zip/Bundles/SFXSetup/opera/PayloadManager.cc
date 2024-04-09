@@ -1,5 +1,7 @@
 #include "StdAfx.h"
 
+#ifdef OPERA_CUSTOM_CODE
+
 #include "PayloadManager.h"
 
 #include <string>
@@ -85,3 +87,5 @@ namespace opera {
     return payload_;
   }
 }  // namespace opera
+
+#endif // OPERA_CUSTOM_CODE

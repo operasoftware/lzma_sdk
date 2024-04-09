@@ -1,3 +1,5 @@
+#ifdef OPERA_CUSTOM_CODE
+
 #ifndef OPERA_PAYLOAD_FLAG_H_
 #define OPERA_PAYLOAD_FLAG_H_
 
@@ -13,3 +15,5 @@ namespace opera
   };
 }
 #endif // OPERA_PAYLOAD_FLAG_H_
+
+#endif // OPERA_CUSTOM_CODE
