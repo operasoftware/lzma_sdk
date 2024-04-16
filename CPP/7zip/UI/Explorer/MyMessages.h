@@ -6,7 +6,13 @@
 #include "../../../Common/MyString.h"
 
 void ShowErrorMessage(HWND window, LPCWSTR message);
-inline void ShowErrorMessage(LPCWSTR message) { ShowErrorMessage(NULL, message); }
+inline void ShowErrorMessage(LPCWSTR message, bool skip = false)
+{
+  if (skip)
+	return;
+
+  ShowErrorMessage(NULL, message);
+}
 
 void ShowErrorMessageHwndRes(HWND window, UInt32 langID);
 void ShowErrorMessageRes(UInt32 langID);

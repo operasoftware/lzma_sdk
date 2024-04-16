@@ -136,6 +136,34 @@ static void ShowErrorMessageSpec(const UString &name)
   ShowErrorMessage(NULL, message);
 }
 
+void TrimPathSeparatorSuffix(UString& path)
+{
+  if (!path.IsEmpty() && IS_PATH_SEPAR(path.Back()))
+    path.DeleteBack();
+}
+
+// Parses that install dir exist, or can be created.
+// %%S will be replaced with sfx file parent dir.
+// %%C will be replaced with current working directory.
+bool HandleInstallPath(UString& installPath)
+{
+  if (installPath.IsEmpty())
+    return true;
+
+  TrimPathSeparatorSuffix(installPath);
+
+  UString path;
+  GetCurrentDir(path);
+  TrimPathSeparatorSuffix(path);
+  installPath.Replace(L"%%C", path);
+
+  path = NDLL::GetModuleDirPrefix();
+  TrimPathSeparatorSuffix(path);
+  installPath.Replace(L"%%S", path);
+
+  return CreateComplexDir(installPath);
+}
+
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
     #ifdef UNDER_CE
     LPWSTR
@@ -174,18 +202,19 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
 
   // TODO investigate.
   // Reading config seams to not work in debug.
+  // Empty string will be considered a broken configuration, as it would unpack
+  // archive, but do nothing with it and remove it afterwards.
   AString config;
-  if (!ReadDataString(fullPath, kStartID, kEndID, config))
+  if (!ReadDataString(fullPath, kStartID, kEndID, config) || config.IsEmpty())
   {
     if (!assumeYes)
       ShowErrorMessage(L"Can't load config info");
     return 1;
   }
 
-  UString dirPrefix ("." STRING_PATH_SEPARATOR);
   UString appLaunched;
+  UString installPath;
   bool showProgress = false;
-  if (!config.IsEmpty())
   {
     CObjectVector<CTextConfigPair> pairs;
     if (!GetTextConfig(config, pairs))
@@ -197,11 +226,9 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
     const UString friendlyName = GetTextConfigValue(pairs, "Title");
     const UString installPrompt = GetTextConfigValue(pairs, "BeginPrompt");
     const UString progress = GetTextConfigValue(pairs, "Progress");
+
     if (progress.IsEqualTo_Ascii_NoCase("yes"))
       showProgress = true;
-    const int index = FindTextConfigItem(pairs, "Directory");
-    if (index >= 0)
-      dirPrefix = pairs[index].String;
     if (!installPrompt.IsEmpty() && !assumeYes)
     {
       if (MessageBoxW(NULL, installPrompt, friendlyName, MB_YESNO |
@@ -214,14 +241,30 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
     executeFile = GetTextConfigValue(pairs, "ExecuteFile");
     executeParameters = GetTextConfigValue(pairs, "ExecuteParameters");
     #endif
+
+    installPath = GetTextConfigValue(pairs, "InstallPath");
+    if (!HandleInstallPath(installPath))
+    {
+	  if (!assumeYes)
+		ShowErrorMessage(L"Install path is incorrect");
+      return 1;
+    }
+
   }
 
   CTempDir tempDir;
-  if (!tempDir.Create(kTempDirPrefix))
+  // If install path is provided the temp dir will not be created.
+  // Temporary location is automatically removed, but one explicitly provided
+  // will not.
+  if (installPath.IsEmpty())
   {
-    if (!assumeYes)
-      ShowErrorMessage(L"Cannot create temp folder archive");
-    return 1;
+    if (!tempDir.Create(kTempDirPrefix))
+    {
+      ShowErrorMessage(L"Cannot create temp folder archive", assumeYes);
+      return 1;
+    }
+
+    installPath = tempDir.GetPath();
   }
 
   CCodecs *codecs = new CCodecs;
@@ -235,12 +278,10 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
     }
   }
 
-  const FString tempDirPath = tempDir.GetPath();
-  // tempDirPath = L"M:\\1\\"; // to test low disk space
   {
     bool isCorrupt = false;
     UString errorMessage;
-    HRESULT result = ExtractArchive(codecs, fullPath, tempDirPath, showProgress,
+    HRESULT result = ExtractArchive(codecs, fullPath, installPath, showProgress,
       isCorrupt, errorMessage);
 
     if (result != S_OK)
@@ -265,7 +306,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
 
   #ifndef UNDER_CE
   CCurrentDirRestorer currentDirRestorer;
-  if (!SetCurrentDir(tempDirPath))
+  if (!SetCurrentDir(installPath))
     return 1;
   #endif
 
@@ -314,25 +355,9 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
 #endif
   {
     if (appLaunched.IsEmpty())
-    {
-      appLaunched = L"setup.exe";
-      if (!NFind::DoesFileExist_FollowLink(us2fs(appLaunched)))
-      {
-        if (!assumeYes)
-          ShowErrorMessage(L"Cannot find setup.exe");
-        return 1;
-      }
-    }
-
-    {
-      FString s2 = tempDirPath;
-      NName::NormalizeDirPathPrefix(s2);
-      appLaunched.Replace(L"%%T" WSTRING_PATH_SEPARATOR, fs2us(s2));
-    }
-
-    const UString appNameForError = appLaunched; // actually we need to rtemove parameters also
-
-    appLaunched.Replace(L"%%T", fs2us(tempDirPath));
+      return 0;
+    appLaunched.Replace(L"%%T", installPath);
+    const UString appNameForError = appLaunched;
 
 #ifdef OPERA_CUSTOM_CODE
     if (!opera::PayloadFlag::HavePayloadFlag(switches))
@@ -364,10 +389,10 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
 
     PROCESS_INFORMATION processInformation;
 
-    const CSysString appLaunchedSys (GetSystemString(dirPrefix + appLaunched));
+    const CSysString appLaunchedSys (GetSystemString(appLaunched));
 
     const BOOL createResult = CreateProcess(NULL,
-        appLaunchedSys.Ptr_non_const(),
+      appLaunchedSys.Ptr_non_const(),
         NULL, NULL, FALSE, 0, NULL, NULL /*tempDir.GetPath() */,
         &startupInfo, &processInformation);
     if (createResult == 0)

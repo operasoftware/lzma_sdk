@@ -90,8 +90,6 @@ bool MyGetModuleFileName(FString &path)
   return false;
 }
 
-#ifndef Z7_SFX
-
 FString GetModuleDirPrefix()
 {
   FString s;
@@ -105,8 +103,6 @@ FString GetModuleDirPrefix()
     s = "." STRING_PATH_SEPARATOR;
   return s;
 }
-
-#endif
 
 }}
 
@@ -159,7 +155,7 @@ bool CLibrary::Load(CFSTR path) throw()
       options |= RTLD_GROUP; // mainly for solaris but not for HPUX
     #endif
   #endif
-  
+
   _module = dlopen(path, options);
   return (_module != NULL);
 }
