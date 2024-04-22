@@ -310,6 +310,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
     return 1;
   #endif
 
+  DWORD exitCode = 0;
   HANDLE hProcess = NULL;
 #ifdef MY_SHELL_EXECUTE
   if (!executeFile.IsEmpty())
@@ -411,6 +412,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
   if (hProcess)
   {
     WaitForSingleObject(hProcess, INFINITE);
+    GetExitCodeProcess(hProcess, &exitCode);
     ::CloseHandle(hProcess);
 
 #ifdef OPERA_CUSTOM_CODE
@@ -420,5 +422,5 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
     std::this_thread::sleep_for(std::chrono::seconds(1));
 #endif // OPERA_CUSTOM_CODE
   }
-  return 0;
+  return exitCode;
 }
