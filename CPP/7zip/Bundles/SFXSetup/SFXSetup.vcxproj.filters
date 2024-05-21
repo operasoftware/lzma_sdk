@@ -302,7 +302,10 @@
     <ClCompile Include="opera\PayloadManager.cc">
       <Filter>Opera</Filter>
     </ClCompile>
-    <ClCompile Include="opera\PayloadFlag.cpp">
+    <ClCompile Include="opera\Flags.cpp">
+      <Filter>Opera</Filter>
+    </ClCompile>
+    <ClCompile Include="opera\Files.cpp">
       <Filter>Opera</Filter>
     </ClCompile>
   </ItemGroup>
@@ -549,7 +552,10 @@
     <ClInclude Include="opera\PayloadManager.h">
       <Filter>Opera</Filter>
     </ClInclude>
-    <ClInclude Include="opera\PayloadFlag.h">
+    <ClInclude Include="opera\Flags.h">
+      <Filter>Opera</Filter>
+    </ClInclude>
+    <ClInclude Include="opera\Files.h">
       <Filter>Opera</Filter>
     </ClInclude>
   </ItemGroup>

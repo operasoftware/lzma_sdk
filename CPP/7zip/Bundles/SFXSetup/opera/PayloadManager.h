@@ -4,56 +4,50 @@
 #define OPERA_PAYLOAD_MANAGER_H_
 
 #include <string>
-#include <string_view>
 #include <filesystem>
+#include <vector>
 
 namespace opera {
-class PayloadManager {
+// Stores the information found in payload.
+class Data {
  public:
-   enum class PayloadStatus
-   {
-     NOT_FOUND,      // Attempts to find a payload failed
-     FOUND,			 // Payload found at the end of file
-     EXTERNAL,       // Payload was supplied externally
-   };
+  Data() = default;
+  Data(std::string data);
 
-  PayloadManager(const std::filesystem::path& file);
+  // @return true if data have been found.
+  bool GetStatus() const;
 
-  /**
-   * @return the status of payload found by ReadPayload.
-   */
-  PayloadStatus GetStatus() const;
 
-  /**
-   * @return the payload found by ReadPayload as a string.
-   */
-  const std::string& GetPayload() const;
+  // @return the data as a string.
+  const std::string& GetData() const;
 
-  /**
-   * Manually sets the payload to use, in case it was provided from an
-   * external source.
-   */
-  void SetPayload(const std::string& data);
-private:
-  PayloadStatus ReadPayload(const std::filesystem::path& file);
-
-  std::vector<uint8_t> ReadFile(const std::filesystem::path& file);
-
-  bool CompareHeaderAtLocation(
-    const std::vector<uint8_t>& file_content,
-    size_t size_pos,
-    std::string_view str);
-
-  std::string ReadPayloadFromLocation(
-    const std::vector<uint8_t>& file_content,
-    size_t size_pos);
-
-  std::string payload_;
-  PayloadStatus payload_status_ = PayloadStatus::NOT_FOUND;
+ private:
+  std::string data_;
 };
 
+// Searches for payload that can be added by server without repacking the whole
+// file. It does not perform checks on the data. It is left to be done by
+// archived installer.
+class PayloadManager {
+ public:
+  // Constructor reads the file starting at the end in search of payload
+  // headers.
+  PayloadManager(const std::filesystem::path& file);
+
+  // Getters:
+  const Data& GetTrackingData() const;
+  const Data& GetCustomizationPackage() const;
+
+ private:
+  // Read and store payload in 'tracking_data_' or 'customization_package_'
+  // depending on payload header.
+  // @return number of bytes stored.
+  uint32_t ReadPayload(std::vector<uint8_t>& data);
+
+  Data tracking_data_;
+  Data customization_package_;
+};
 }  // namespace opera
 
 #endif  // OPERA_PAYLOAD_MANAGER_H_
-
-#endif // OPERA_CUSTOM_CODE
+#endif  // OPERA_CUSTOM_CODE

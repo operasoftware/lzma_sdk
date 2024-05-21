@@ -4,88 +4,122 @@
 
 #include "PayloadManager.h"
 
-#include <string>
-#include <filesystem>
-#include <fstream>
+#include "Files.h"
 
+#include <filesystem>
+#include <string_view>
+#include <string>
+#include <utility>
 
 namespace opera {
-  PayloadManager::PayloadManager(const std::filesystem::path& file)
-  {
-    payload_status_ = ReadPayload(file);
-  }
+namespace {
+enum class DataType {
+  UNKNOWN,
+  TRACKING_DATA,
+  CUSTOMIZATION_PACKAGE
+};
 
-  bool PayloadManager::CompareHeaderAtLocation(
+constexpr size_t kHeaderLength = 3;
+constexpr size_t kSizeMarkerLength = 4;
+
+// String comparison.
+bool CompareHeaderAtLocation(const std::vector<uint8_t>& file_content,
+                             size_t size_pos,
+                             std::string_view str) {
+  return !strncmp(reinterpret_cast<const char*>(file_content.data() + size_pos),
+                  str.data(), str.size());
+}
+
+// String comparison to known constant.
+// Change to map in case of additional types.
+DataType CheckDataType(const std::vector<uint8_t>& file_content,
+                       size_t size_pos) {
+  const auto compare = [&](std::string_view str) {
+    return CompareHeaderAtLocation(file_content, size_pos, str);
+  };
+
+  return compare("OPR")   ? DataType::TRACKING_DATA
+         : compare("RES") ? DataType::CUSTOMIZATION_PACKAGE
+                          : DataType::UNKNOWN;
+}
+
+// Reads payload from 'file_content'.
+// At the end of payload, at 'size_pos" there must be 4 byte long size of
+// payload. Header with file type must be placed before payload. 3 bytes of
+// header type are not included in size marker.
+std::pair<DataType, std::string> ReadPayloadFromLocation(
     const std::vector<uint8_t>& file_content,
-    size_t size_pos,
-    std::string_view str)
-  {
-    return !strncmp(
-      reinterpret_cast<const char*>(file_content.data() + size_pos),
-      str.data(), str.size());
+    size_t size_pos) {
+  auto data_size =
+      *reinterpret_cast<const uint32_t*>(file_content.data() + size_pos);
+  if (data_size > size_pos - kHeaderLength) {
+    return {};
   }
 
-  std::string PayloadManager::ReadPayloadFromLocation(
-    const std::vector<uint8_t>& file_content,
-    size_t size_pos)
-  {
-    const uint8_t* d = file_content.data() + size_pos;
-    size_t data_size = (d[0] << 0) | (d[1] << 8) | (d[2] << 16) | (d[3] << 24);
-    if (data_size > size_pos - 3) {
-      return {};
-    }
+  auto data_pos = size_pos - data_size;
+  auto magic_pos = data_pos - kHeaderLength;
+  const auto data_type = CheckDataType(file_content, magic_pos);
+  return { data_type, data_type == DataType::UNKNOWN
+                          ? ""
+                          : std::string(reinterpret_cast<const char*>(
+                                            file_content.data() + data_pos),
+                                        data_size) };
+}
 
-    size_t data_pos = size_pos - data_size;
-    size_t magic_pos = data_pos - 3;
-    if (!CompareHeaderAtLocation(file_content, magic_pos, "OPR")) {
-      return {};
-    }
+}  // namespace
 
-    return std::string(
-      reinterpret_cast<const char*>(file_content.data() + data_pos),
-      data_size);
+PayloadManager::PayloadManager(const std::filesystem::path& file) {
+  auto file_content = files::Read(file);
+  auto payload_size = ReadPayload(file_content);
+  if (!payload_size) {
+    return;
   }
 
-  PayloadManager::PayloadStatus PayloadManager::ReadPayload(
-    const std::filesystem::path& file)
-  {
-    std::vector<uint8_t> file_content = ReadFile(file);
-    if (file_content.empty()) {
-      return PayloadStatus::NOT_FOUND;
-    }
+  payload_size += kHeaderLength + kSizeMarkerLength;
+  if (payload_size < file_content.size()) {
+    // There could be a second payload. Remove first from the buffer before
+    // reading again.
+    file_content.resize(file_content.size() - payload_size);
+    ReadPayload(file_content);
+  }
+}
 
-    payload_ = ReadPayloadFromLocation(
-      file_content,
-      file_content.size() - sizeof(uint32_t));
+const opera::Data& PayloadManager::GetTrackingData() const {
+  return tracking_data_;
+}
 
-    return !payload_.empty() ? PayloadStatus::FOUND : PayloadStatus::NOT_FOUND;
+const opera::Data& PayloadManager::GetCustomizationPackage() const {
+  return customization_package_;
+}
+
+uint32_t PayloadManager::ReadPayload(std::vector<uint8_t>& data) {
+  if (data.size() < kSizeMarkerLength) {
+    return 0;
   }
 
-
-  std::vector<uint8_t> PayloadManager::ReadFile(const std::filesystem::path& file)
-  {
-    std::ifstream stream(file, std::ios::binary);
-    if (!stream)
-      return {};
-
-    return std::vector<uint8_t>{std::istreambuf_iterator<char>(stream), {}};
+  auto [payload_type, payload] =
+      ReadPayloadFromLocation(data, data.size() - kSizeMarkerLength);
+  switch (payload_type) {
+    case DataType::TRACKING_DATA:
+      tracking_data_ = std::move(payload);
+      return tracking_data_.GetData().size();
+    case DataType::CUSTOMIZATION_PACKAGE:
+      customization_package_ = std::move(payload);
+      return customization_package_.GetData().size();
+    default:
+      return 0;
   }
+}
 
-  void PayloadManager::SetPayload(const std::string& data)
-  {
-    payload_ = data;
-    payload_status_ = PayloadStatus::EXTERNAL;
-  }
+Data::Data(std::string data) : data_(std::move(data)) {}
 
-  PayloadManager::PayloadStatus PayloadManager::GetStatus() const
-  {
-    return payload_status_;
-  }
+bool Data::GetStatus() const {
+  return !data_.empty();
+}
 
-  const std::string& PayloadManager::GetPayload() const
-  {
-    return payload_;
-  }
+const std::string& Data::GetData() const {
+  return data_;
+}
 }  // namespace opera
 
-#endif // OPERA_CUSTOM_CODE
+#endif  // OPERA_CUSTOM_CODE

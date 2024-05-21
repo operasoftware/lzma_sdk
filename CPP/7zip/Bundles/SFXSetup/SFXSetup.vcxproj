@@ -418,7 +418,8 @@
     <ClCompile Include="..\..\UI\FileManager\ProgressDialog.cpp" />
     <ClCompile Include="ExtractCallbackSfx.cpp" />
     <ClCompile Include="ExtractEngine.cpp" />
-    <ClCompile Include="opera\PayloadFlag.cpp" />
+    <ClCompile Include="opera\Files.cpp" />
+    <ClCompile Include="opera\Flags.cpp" />
     <ClCompile Include="opera\PayloadManager.cc" />
     <ClCompile Include="SfxSetup.cpp" />
     <ClCompile Include="StdAfx.cpp">
@@ -511,7 +512,8 @@
     <ClInclude Include="..\..\UI\FileManager\ProgressDialog.h" />
     <ClInclude Include="ExtractCallbackSfx.h" />
     <ClInclude Include="ExtractEngine.h" />
-    <ClInclude Include="opera\PayloadFlag.h" />
+    <ClInclude Include="opera\Files.h" />
+    <ClInclude Include="opera\Flags.h" />
     <ClInclude Include="opera\PayloadManager.h" />
     <ClInclude Include="StdAfx.h" />
   </ItemGroup>

@@ -25,11 +25,13 @@
 #include "ExtractEngine.h"
 
 #ifdef OPERA_CUSTOM_CODE
+#include "opera/Files.h"
+#include "opera/Flags.h"
 #include "opera/PayloadManager.h"
-#include "opera/PayloadFlag.h"
 
-#include <thread>
 #include <chrono>
+#include <filesystem>
+#include <thread>
 #endif // OPERA_CUSTOM_CODE
 
 #include "resource.h"
@@ -146,19 +148,20 @@ static void ShowErrorMessageSpec(const UString &name)
   ShowErrorMessage(NULL, message);
 }
 
-void TrimPathSeparatorSuffix(UString& path)
-{
-  if (!path.IsEmpty() && IS_PATH_SEPAR(path.Back()))
+namespace {
+void TrimPathSeparatorSuffix(UString& path) {
+  if (!path.IsEmpty() && IS_PATH_SEPAR(path.Back())) {
     path.DeleteBack();
+  }
 }
 
 // Parses that install dir exist, or can be created.
 // %%S will be replaced with sfx file parent dir.
 // %%C will be replaced with current working directory.
-bool HandleInstallPath(UString& installPath)
-{
-  if (installPath.IsEmpty())
+bool HandleInstallPath(UString& installPath) {
+  if (installPath.IsEmpty()) {
     return true;
+  }
 
   TrimPathSeparatorSuffix(installPath);
 
@@ -173,6 +176,48 @@ bool HandleInstallPath(UString& installPath)
 
   return CreateComplexDir(installPath);
 }
+
+#ifdef OPERA_CUSTOM_CODE
+// Function responsible for reading data that server might have added, and
+// updating switches so data can be passed to executed application.
+void HandlePayload(UString& switches,
+                   const FString& sfxPath,
+                   const FString& installPath) {
+  const auto haveTrackingDataFlag =
+      switches.Find(opera::flags::ServerTrackingBlob()) != -1;
+  const auto haveCustomizationPackageFlag =
+      switches.Find(opera::flags::CustomizationPackage()) != -1;
+
+  // Both types of data are provided in command line.
+  // Skip searching for payload.
+  if (haveTrackingDataFlag && haveCustomizationPackageFlag) {
+    return;
+  }
+
+  const auto payloadManager = opera::PayloadManager(sfxPath.Ptr());
+  const auto& trackingData = payloadManager.GetTrackingData();
+  const auto& customizationPackage = payloadManager.GetCustomizationPackage();
+  if (!haveTrackingDataFlag && trackingData.GetStatus()) {
+    switches.Add_Space_if_NotEmpty();
+    switches += opera::flags::ServerTrackingBlob();
+    switches += UString(trackingData.GetData().c_str());
+  }
+
+  if (!haveCustomizationPackageFlag && customizationPackage.GetStatus()) {
+    const auto customizationPackagePath =
+        std::filesystem::path(installPath.Ptr()) / "customization_package.bin";
+    opera::files::Write(customizationPackagePath,
+                        customizationPackage.GetData());
+    switches.Add_Space_if_NotEmpty();
+    switches += opera::flags::CustomizationPackage();
+    switches +=
+        UString((L"\"" + customizationPackagePath.wstring() + L"\"").c_str());
+  }
+}
+#endif  // OPERA_CUSTOM_CODE
+}  // namespace
+
+
 
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
     #ifdef UNDER_CE
@@ -371,16 +416,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
     const UString appNameForError = appLaunched;
 
 #ifdef OPERA_CUSTOM_CODE
-    if (!opera::PayloadFlag::HavePayloadFlag(switches))
-    {
-      const auto payloadManager = opera::PayloadManager(fullPath.GetBuf());
-      if (payloadManager.GetStatus() != opera::PayloadManager::PayloadStatus::NOT_FOUND)
-      {
-        switches.Add_Space_if_NotEmpty();
-        switches += opera::PayloadFlag::GetPayloadFlag();
-        switches += UString(payloadManager.GetPayload().c_str());
-      }
-    }
+    HandlePayload(switches, fullPath, installPath);
 #endif // OPERA_CUSTOM_CODE
 
     if (!switches.IsEmpty())
