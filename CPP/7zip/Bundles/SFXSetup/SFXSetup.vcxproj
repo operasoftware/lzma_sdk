@@ -80,7 +80,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <WarningLevel>Level4</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;Z7_EXTRACT_ONLY;Z7_NO_REGISTRY;Z7_SFX;Z7_NO_CRYPTO;OPERA_CUSTOM_CODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_UNICODE;UNICODE;Z7_EXTRACT_ONLY;Z7_NO_REGISTRY;Z7_SFX;Z7_NO_CRYPTO;OPERA_CUSTOM_CODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>$(SolutionDir)tmp\$(Configuration)\</AssemblerListingLocation>
       <PrecompiledHeaderOutputFile>$(SolutionDir)tmp\$(Configuration)\SFXSetup.pch</PrecompiledHeaderOutputFile>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -129,7 +129,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <MinimalRebuild>false</MinimalRebuild>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
-      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;Z7_EXTRACT_ONLY;Z7_NO_REGISTRY;Z7_SFX;Z7_NO_CRYPTO;OPERA_CUSTOM_CODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_UNICODE;UNICODE;Z7_EXTRACT_ONLY;Z7_NO_REGISTRY;Z7_SFX;Z7_NO_CRYPTO;OPERA_CUSTOM_CODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>$(SolutionDir)tmp\$(Configuration)\</AssemblerListingLocation>
       <PrecompiledHeaderOutputFile>$(SolutionDir)tmp\$(Configuration)\SFXSetup.pch</PrecompiledHeaderOutputFile>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -180,7 +180,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <WarningLevel>Level4</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;Z7_EXTRACT_ONLY;Z7_NO_REGISTRY;Z7_SFX;Z7_NO_CRYPTO;OPERA_CUSTOM_CODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_UNICODE;UNICODE;Z7_EXTRACT_ONLY;Z7_NO_REGISTRY;Z7_SFX;Z7_NO_CRYPTO;OPERA_CUSTOM_CODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>$(SolutionDir)tmp\$(Configuration)\</AssemblerListingLocation>
       <PrecompiledHeaderOutputFile>$(SolutionDir)tmp\$(Configuration)\SFXSetup.pch</PrecompiledHeaderOutputFile>
       <PrecompiledHeader>Use</PrecompiledHeader>
