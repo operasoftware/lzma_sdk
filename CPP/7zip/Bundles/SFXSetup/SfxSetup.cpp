@@ -59,12 +59,22 @@ static bool ReadDataString(CFSTR fileName, LPCSTR startID,
   const unsigned signatureStartSize = MyStringLen(startID);
   const unsigned signatureEndSize = MyStringLen(endID);
 
+// maxPos prevents reading too long files before encountering expected data.
+// SFX itself should be smaller than 1MB, anything above is probably archive to
+// be extracted. Debug builds size limit will be raised to 16 MB.
+#ifdef _DEBUG
+  const unsigned maxPos = (1 << 24);
+#else
+  const unsigned maxPos = (1 << 20);
+#endif // _DEBUG
+
+
   size_t numBytesPrev = 0;
   bool writeMode = false;
   UInt64 posTotal = 0;
   for (;;)
   {
-    if (posTotal > (1 << 20))
+    if (posTotal > maxPos)
       return (stringResult.IsEmpty());
     const size_t numReadBytes = kBufferSize - numBytesPrev;
     size_t processedSize;
